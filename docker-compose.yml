@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-portal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-holiday_calendar}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-portal} -d ${POSTGRES_DB:-holiday_calendar}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  web:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-portal}:${POSTGRES_PASSWORD:-localpassword}@db:5432/${POSTGRES_DB:-holiday_calendar}
+      SECRET_KEY: ${SECRET_KEY:-local-development-only-change-this-secret-key-32chars}
+      SESSION_HTTPS_ONLY: "false"
+      APP_ENV: development
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_DISPLAY_NAME: ${ADMIN_DISPLAY_NAME:-Calendar Administrator}
+    ports:
+      - "8000:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  pgdata:
